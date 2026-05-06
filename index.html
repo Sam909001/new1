@@ -5,864 +5,577 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Pro Pack Scanner</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #fff; min-height: 100vh; display: flex; flex-direction: column; user-select: none; }
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #0f1117;
-    color: #fff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+/* PIN SCREEN */
+.pin-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#0f1117; z-index:999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+.pin-logo { font-size:52px; margin-bottom:16px; }
+.pin-title { font-size:24px; font-weight:700; margin-bottom:6px; }
+.pin-subtitle { font-size:14px; color:#6b7280; margin-bottom:36px; }
+.pin-dots { display:flex; gap:14px; margin-bottom:32px; }
+.pin-dot { width:18px; height:18px; border-radius:50%; border:2px solid #3b82f6; background:transparent; transition:background 0.15s; }
+.pin-dot.filled { background:#3b82f6; }
+.pin-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:100%; max-width:300px; }
+.pin-key { background:#1a1d27; border:1px solid #2a2d3a; border-radius:12px; padding:18px; text-align:center; font-size:22px; font-weight:600; cursor:pointer; transition:all 0.1s; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70px; }
+.pin-key:active { background:#3b82f6; border-color:#3b82f6; transform:scale(0.95); }
+.pin-key.del { font-size:18px; color:#9ca3af; }
+.pin-key.empty { background:transparent; border-color:transparent; cursor:default; }
+.pin-key .letters { font-size:9px; color:#6b7280; margin-top:2px; letter-spacing:1px; }
+.pin-error { margin-top:20px; font-size:14px; color:#ef4444; min-height:20px; text-align:center; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+.shake { animation:shake 0.4s ease; }
 
-  /* ── TOP BAR ── */
-  .topbar {
-    background: #1a1d27;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #2a2d3a;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .topbar h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-  .topbar h1 span { color: #3b82f6; }
-  .status-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: #ef4444; transition: background 0.3s;
-  }
-  .status-dot.connected { background: #22c55e; }
+/* TOP BAR */
+.topbar { background:#1a1d27; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #2a2d3a; position:sticky; top:0; z-index:100; }
+.topbar h1 { font-size:17px; font-weight:700; }
+.topbar h1 span { color:#3b82f6; }
+.status-dot { width:9px; height:9px; border-radius:50%; background:#ef4444; transition:background 0.3s; }
+.status-dot.connected { background:#22c55e; }
+.logout-btn { font-size:12px; color:#6b7280; cursor:pointer; padding:4px 8px; border:1px solid #2a2d3a; border-radius:6px; }
+.logout-btn:active { background:#2a2d3a; }
 
-  /* ── MODE TABS ── */
-  .mode-tabs {
-    display: flex;
-    background: #1a1d27;
-    border-bottom: 1px solid #2a2d3a;
-  }
-  .mode-tab {
-    flex: 1; padding: 14px 8px; text-align: center;
-    font-size: 13px; font-weight: 600; cursor: pointer;
-    border-bottom: 3px solid transparent;
-    color: #6b7280; transition: all 0.2s;
-  }
-  .mode-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+/* TABS */
+.mode-tabs { display:flex; background:#1a1d27; border-bottom:1px solid #2a2d3a; }
+.mode-tab { flex:1; padding:13px 4px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; color:#6b7280; transition:all 0.2s; }
+.mode-tab.active { color:#3b82f6; border-bottom-color:#3b82f6; }
 
-  /* ── MAIN CONTENT ── */
-  .content { flex: 1; padding: 16px; max-width: 480px; margin: 0 auto; width: 100%; }
+/* CONTENT */
+.content { flex:1; padding:14px; max-width:480px; margin:0 auto; width:100%; }
 
-  /* ── CAMERA ── */
-  .camera-wrap {
-    position: relative; width: 100%; padding-top: 75%;
-    background: #000; border-radius: 12px; overflow: hidden;
-    margin-bottom: 16px; border: 2px solid #2a2d3a;
-  }
-  .camera-wrap video, .camera-wrap canvas {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    object-fit: cover;
-  }
-  .scan-line {
-    position: absolute; top: 50%; left: 10%; width: 80%; height: 2px;
-    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-    animation: scanAnim 2s ease-in-out infinite;
-    z-index: 10;
-  }
-  @keyframes scanAnim {
-    0%, 100% { top: 30%; opacity: 0.3; }
-    50% { top: 70%; opacity: 1; }
-  }
-  .scan-corner {
-    position: absolute; width: 20px; height: 20px;
-    border-color: #3b82f6; border-style: solid; z-index: 10;
-  }
-  .scan-corner.tl { top: 12%; left: 10%; border-width: 3px 0 0 3px; }
-  .scan-corner.tr { top: 12%; right: 10%; border-width: 3px 3px 0 0; }
-  .scan-corner.bl { bottom: 12%; left: 10%; border-width: 0 0 3px 3px; }
-  .scan-corner.br { bottom: 12%; right: 10%; border-width: 0 3px 3px 0; }
+/* CAMERA */
+.camera-wrap { position:relative; width:100%; padding-top:70%; background:#000; border-radius:12px; overflow:hidden; margin-bottom:14px; border:2px solid #2a2d3a; }
+.camera-wrap video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; }
+.scan-line { position:absolute; top:50%; left:10%; width:80%; height:2px; background:linear-gradient(90deg,transparent,#3b82f6,transparent); animation:scanAnim 2s ease-in-out infinite; z-index:10; }
+@keyframes scanAnim { 0%,100%{top:28%;opacity:0.3} 50%{top:72%;opacity:1} }
+.scan-corner { position:absolute; width:22px; height:22px; border-color:#3b82f6; border-style:solid; z-index:10; }
+.sc-tl{top:10%;left:8%;border-width:3px 0 0 3px} .sc-tr{top:10%;right:8%;border-width:3px 3px 0 0}
+.sc-bl{bottom:10%;left:8%;border-width:0 0 3px 3px} .sc-br{bottom:10%;right:8%;border-width:0 3px 3px 0}
+.cam-placeholder { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#6b7280; gap:10px; font-size:13px; text-align:center; padding:16px; }
+.cam-placeholder .icon { font-size:44px; }
 
-  .camera-placeholder {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    color: #6b7280; gap: 12px; font-size: 14px; text-align: center; padding: 16px;
-  }
-  .camera-placeholder .icon { font-size: 48px; }
+/* BUTTONS */
+.btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:opacity 0.15s,transform 0.1s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn:active { opacity:0.8; transform:scale(0.98); }
+.btn-blue{background:#3b82f6;color:#fff} .btn-green{background:#22c55e;color:#fff}
+.btn-red{background:#ef4444;color:#fff} .btn-gray{background:#2a2d3a;color:#9ca3af}
+.btn-orange{background:#f59e0b;color:#fff}
 
-  /* ── BUTTONS ── */
-  .btn {
-    width: 100%; padding: 14px; border: none; border-radius: 10px;
-    font-size: 16px; font-weight: 600; cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .btn:active { opacity: 0.8; transform: scale(0.98); }
-  .btn-blue { background: #3b82f6; color: #fff; }
-  .btn-green { background: #22c55e; color: #fff; }
-  .btn-red { background: #ef4444; color: #fff; }
-  .btn-gray { background: #2a2d3a; color: #9ca3af; }
-  .btn-orange { background: #f59e0b; color: #fff; }
+/* RESULT */
+.result-card { background:#1a1d27; border-radius:12px; padding:14px; margin-bottom:14px; border:1px solid #2a2d3a; display:none; }
+.result-card.show{display:block} .result-card.success{border-color:#22c55e} .result-card.error{border-color:#ef4444} .result-card.warning{border-color:#f59e0b}
+.result-title { font-size:12px; color:#6b7280; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px; }
+.result-value { font-size:19px; font-weight:700; word-break:break-all; }
+.result-meta  { font-size:13px; color:#9ca3af; margin-top:5px; }
 
-  /* ── RESULT CARD ── */
-  .result-card {
-    background: #1a1d27; border-radius: 12px;
-    padding: 16px; margin-bottom: 16px;
-    border: 1px solid #2a2d3a;
-    display: none;
-  }
-  .result-card.show { display: block; }
-  .result-card.success { border-color: #22c55e; }
-  .result-card.error { border-color: #ef4444; }
-  .result-card.warning { border-color: #f59e0b; }
+/* FORM */
+.form-group { margin-bottom:11px; }
+.form-label { font-size:11px; color:#9ca3af; margin-bottom:5px; display:block; text-transform:uppercase; letter-spacing:0.5px; }
+.form-input { width:100%; padding:12px 14px; background:#1a1d27; border:1px solid #2a2d3a; border-radius:8px; color:#fff; font-size:16px; }
+.form-input:focus { outline:none; border-color:#3b82f6; }
 
-  .result-title { font-size: 13px; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .result-value { font-size: 20px; font-weight: 700; word-break: break-all; }
-  .result-meta { font-size: 13px; color: #9ca3af; margin-top: 6px; }
+/* NEW ITEM NAME PROMPT */
+.name-prompt { background:#1a1d27; border-radius:12px; padding:16px; margin-bottom:14px; border:1px solid #3b82f6; display:none; }
+.name-prompt.show { display:block; }
+.name-prompt p { font-size:14px; color:#9ca3af; margin-bottom:10px; }
 
-  /* ── FORM ── */
-  .form-group { margin-bottom: 12px; }
-  .form-label { font-size: 12px; color: #9ca3af; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
-  .form-input {
-    width: 100%; padding: 12px 14px; background: #1a1d27;
-    border: 1px solid #2a2d3a; border-radius: 8px;
-    color: #fff; font-size: 16px;
-  }
-  .form-input:focus { outline: none; border-color: #3b82f6; }
+/* LOG */
+.log-wrap { background:#1a1d27; border-radius:12px; border:1px solid #2a2d3a; margin-top:14px; max-height:200px; overflow-y:auto; }
+.log-title { padding:9px 14px; font-size:11px; font-weight:600; color:#6b7280; border-bottom:1px solid #2a2d3a; text-transform:uppercase; letter-spacing:0.5px; }
+.log-item { padding:7px 14px; font-size:12px; border-bottom:1px solid #1f2230; display:flex; gap:8px; }
+.log-item:last-child{border-bottom:none}
+.log-time{color:#4b5563;white-space:nowrap;font-size:10px;padding-top:2px}
+.log-msg{flex:1} .log-msg.success{color:#22c55e} .log-msg.error{color:#ef4444} .log-msg.warning{color:#f59e0b} .log-msg.info{color:#9ca3af}
 
-  /* ── LOG ── */
-  .log-wrap {
-    background: #1a1d27; border-radius: 12px;
-    border: 1px solid #2a2d3a; margin-top: 16px;
-    max-height: 220px; overflow-y: auto;
-  }
-  .log-title {
-    padding: 10px 14px; font-size: 12px; font-weight: 600;
-    color: #6b7280; border-bottom: 1px solid #2a2d3a;
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .log-item {
-    padding: 8px 14px; font-size: 13px; border-bottom: 1px solid #1f2230;
-    display: flex; gap: 8px; align-items: flex-start;
-  }
-  .log-item:last-child { border-bottom: none; }
-  .log-time { color: #4b5563; white-space: nowrap; font-size: 11px; padding-top: 2px; }
-  .log-msg { flex: 1; }
-  .log-msg.success { color: #22c55e; }
-  .log-msg.error { color: #ef4444; }
-  .log-msg.warning { color: #f59e0b; }
-  .log-msg.info { color: #9ca3af; }
+.divider{height:1px;background:#2a2d3a;margin:14px 0}
+.section-title{font-size:11px;color:#6b7280;margin-bottom:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.stock-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.stock-badge.ok{background:#14532d;color:#22c55e} .stock-badge.low{background:#451a03;color:#f59e0b} .stock-badge.empty{background:#450a0a;color:#ef4444}
 
-  /* ── SETUP SCREEN ── */
-  .setup-screen {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: #0f1117; z-index: 999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px;
-  }
-  .setup-screen h2 { font-size: 22px; margin-bottom: 8px; }
-  .setup-screen p { color: #6b7280; font-size: 14px; margin-bottom: 24px; text-align: center; }
-  .setup-logo { font-size: 48px; margin-bottom: 16px; }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    background: #1a1d27; color: #fff; padding: 12px 20px;
-    border-radius: 10px; font-size: 14px; font-weight: 600;
-    border: 1px solid #2a2d3a; z-index: 9999;
-    transition: opacity 0.3s; white-space: nowrap;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  }
-
-  .section-title {
-    font-size: 13px; color: #6b7280; margin-bottom: 12px;
-    text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
-  }
-
-  .stock-badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 13px; font-weight: 700;
-  }
-  .stock-badge.ok { background: #14532d; color: #22c55e; }
-  .stock-badge.low { background: #451a03; color: #f59e0b; }
-  .stock-badge.empty { background: #450a0a; color: #ef4444; }
-
-  .divider { height: 1px; background: #2a2d3a; margin: 16px 0; }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a1d27; color:#fff; padding:11px 20px; border-radius:10px; font-size:14px; font-weight:600; border:1px solid #2a2d3a; z-index:9999; box-shadow:0 4px 20px rgba(0,0,0,0.4); white-space:nowrap; }
 </style>
 </head>
 <body>
 
-<!-- ── SETUP SCREEN ── -->
-<div class="setup-screen" id="setupScreen">
-  <div class="setup-logo">📦</div>
-  <h2>Pro Pack Scanner</h2>
-  <p>Supabase bağlantı bilgilerinizi girin</p>
-  <div style="width:100%;max-width:400px;">
-    <div class="form-group">
-      <label class="form-label">Supabase URL</label>
-      <input class="form-input" id="setupUrl" placeholder="https://xxxx.supabase.co" type="url" autocomplete="off">
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-logo">📦</div>
+  <div class="pin-title">Pro Pack Scanner</div>
+  <div class="pin-subtitle">6 haneli PIN kodunuzu girin</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="dot0"></div><div class="pin-dot" id="dot1"></div>
+    <div class="pin-dot" id="dot2"></div><div class="pin-dot" id="dot3"></div>
+    <div class="pin-dot" id="dot4"></div><div class="pin-dot" id="dot5"></div>
+  </div>
+  <div class="pin-keypad">
+    <div class="pin-key" onclick="pinPress('1')">1</div>
+    <div class="pin-key" onclick="pinPress('2')">2<div class="letters">ABC</div></div>
+    <div class="pin-key" onclick="pinPress('3')">3<div class="letters">DEF</div></div>
+    <div class="pin-key" onclick="pinPress('4')">4<div class="letters">GHI</div></div>
+    <div class="pin-key" onclick="pinPress('5')">5<div class="letters">JKL</div></div>
+    <div class="pin-key" onclick="pinPress('6')">6<div class="letters">MNO</div></div>
+    <div class="pin-key" onclick="pinPress('7')">7<div class="letters">PQRS</div></div>
+    <div class="pin-key" onclick="pinPress('8')">8<div class="letters">TUV</div></div>
+    <div class="pin-key" onclick="pinPress('9')">9<div class="letters">WXYZ</div></div>
+    <div class="pin-key empty"></div>
+    <div class="pin-key" onclick="pinPress('0')">0</div>
+    <div class="pin-key del" onclick="pinDelete()">⌫</div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;flex-direction:column;min-height:100vh;">
+  <div class="topbar">
+    <h1>Pro<span>Pack</span> 📱</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;color:#6b7280;" id="workerName"></span>
+      <div class="status-dot" id="statusDot"></div>
+      <div class="logout-btn" onclick="logout()">Çıkış</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Anon Key</label>
-      <input class="form-input" id="setupKey" placeholder="eyJ..." type="password" autocomplete="off">
+  </div>
+
+  <div class="mode-tabs">
+    <div class="mode-tab active" id="tab-si" onclick="switchMode('si')">📥 Stok Giriş</div>
+    <div class="mode-tab"        id="tab-po" onclick="switchMode('po')">📤 Paket Çıkış</div>
+    <div class="mode-tab"        id="tab-qr" onclick="switchMode('qr')">🔍 Sorgula</div>
+  </div>
+
+  <div class="content">
+    <div class="result-card" id="resultCard">
+      <div class="result-title" id="resultTitle">Son İşlem</div>
+      <div class="result-value" id="resultValue">—</div>
+      <div class="result-meta"  id="resultMeta"></div>
     </div>
-    <button class="btn btn-blue" onclick="saveSetup()" style="margin-top:8px;">
-      Bağlan →
-    </button>
-    <p style="text-align:center;margin-top:12px;font-size:12px;color:#4b5563;">
-      Bilgiler cihazda saklanır, paylaşılmaz.
-    </p>
-  </div>
-</div>
 
-<!-- ── TOP BAR ── -->
-<div class="topbar">
-  <h1>Pro<span>Pack</span> 📱</h1>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:12px;color:#4b5563;" id="connLabel">Bağlanıyor...</span>
-    <div class="status-dot" id="statusDot"></div>
-  </div>
-</div>
-
-<!-- ── MODE TABS ── -->
-<div class="mode-tabs">
-  <div class="mode-tab active" id="tab-stock-in" onclick="switchMode('stock-in')">📥 Stok Giriş</div>
-  <div class="mode-tab" id="tab-package-out" onclick="switchMode('package-out')">📤 Paket Çıkış</div>
-  <div class="mode-tab" id="tab-manual" onclick="switchMode('manual')">✏️ Manuel</div>
-</div>
-
-<!-- ── CONTENT ── -->
-<div class="content">
-
-  <!-- RESULT CARD -->
-  <div class="result-card" id="resultCard">
-    <div class="result-title" id="resultTitle">Son Tarama</div>
-    <div class="result-value" id="resultValue">—</div>
-    <div class="result-meta" id="resultMeta"></div>
-  </div>
-
-  <!-- ── STOCK IN MODE ── -->
-  <div id="mode-stock-in">
-    <p class="section-title">Stok Ekle / Güncelle</p>
-
-    <div class="camera-wrap" id="cameraWrap-stock-in">
-      <div class="camera-placeholder" id="placeholder-stock-in">
-        <div class="icon">📷</div>
-        <div>Kamera başlatmak için aşağıdaki butona basın</div>
+    <!-- STOCK IN -->
+    <div id="mode-si">
+      <p class="section-title">Stok Ekle / Güncelle</p>
+      <div class="camera-wrap">
+        <div class="cam-placeholder" id="ph-si"><div class="icon">📷</div><div>Barkod taramak için kamerayı başlatın</div></div>
+        <video id="vid-si" autoplay playsinline style="display:none;"></video>
+        <div class="scan-line" id="sl-si" style="display:none;"></div>
+        <div class="scan-corner sc-tl" id="c-tl-si" style="display:none;"></div>
+        <div class="scan-corner sc-tr" id="c-tr-si" style="display:none;"></div>
+        <div class="scan-corner sc-bl" id="c-bl-si" style="display:none;"></div>
+        <div class="scan-corner sc-br" id="c-br-si" style="display:none;"></div>
       </div>
-      <video id="video-stock-in" autoplay playsinline style="display:none;"></video>
-      <div class="scan-line" id="scanLine-stock-in" style="display:none;"></div>
-      <div class="scan-corner tl" id="sc-tl-si" style="display:none;"></div>
-      <div class="scan-corner tr" id="sc-tr-si" style="display:none;"></div>
-      <div class="scan-corner bl" id="sc-bl-si" style="display:none;"></div>
-      <div class="scan-corner br" id="sc-br-si" style="display:none;"></div>
-    </div>
 
-    <div class="form-group">
-      <label class="form-label">Miktar</label>
-      <input class="form-input" id="stockInQty" type="number" value="1" min="1">
-    </div>
-
-    <button class="btn btn-green" id="startBtn-stock-in" onclick="toggleCamera('stock-in')" style="margin-bottom:10px;">
-      📷 Kamera Başlat
-    </button>
-
-    <div class="divider"></div>
-
-    <p class="section-title">Manuel Barkod Giriş</p>
-    <div class="form-group">
-      <input class="form-input" id="manualBarcodeIn" placeholder="Barkod veya ürün adı..." type="text">
-    </div>
-    <div class="form-group">
-      <input class="form-input" id="manualNameIn" placeholder="Ürün adı (barkod değilse boş bırakın)" type="text">
-    </div>
-    <button class="btn btn-blue" onclick="manualStockIn()">➕ Stoğa Ekle</button>
-  </div>
-
-  <!-- ── PACKAGE OUT MODE ── -->
-  <div id="mode-package-out" style="display:none;">
-    <p class="section-title">Paket Barkodu Tara → Sevk Et</p>
-
-    <div class="camera-wrap" id="cameraWrap-package-out">
-      <div class="camera-placeholder" id="placeholder-package-out">
-        <div class="icon">📷</div>
-        <div>Paket etiketindeki barkodu tarayın</div>
+      <!-- New item name prompt (replaces prompt()) -->
+      <div class="name-prompt" id="namePrompt">
+        <p>Yeni barkod tarandı. Ürün adını girin:</p>
+        <div class="form-group">
+          <input class="form-input" id="newItemNameInput" placeholder="Ürün adı..." type="text">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-green" onclick="confirmNewItem()" style="flex:1;">✅ Kaydet</button>
+          <button class="btn btn-gray"  onclick="cancelNewItem()"  style="flex:1;">İptal</button>
+        </div>
       </div>
-      <video id="video-package-out" autoplay playsinline style="display:none;"></video>
-      <div class="scan-line" id="scanLine-package-out" style="display:none;"></div>
-      <div class="scan-corner tl" id="sc-tl-po" style="display:none;"></div>
-      <div class="scan-corner tr" id="sc-tr-po" style="display:none;"></div>
-      <div class="scan-corner bl" id="sc-bl-po" style="display:none;"></div>
-      <div class="scan-corner br" id="sc-br-po" style="display:none;"></div>
+
+      <div class="form-group">
+        <label class="form-label">Eklenecek Miktar</label>
+        <input class="form-input" id="stockInQty" type="number" value="1" min="1">
+      </div>
+      <button class="btn btn-green" id="camBtn-si" onclick="toggleCamera('si')" style="margin-bottom:10px;">📷 Kamera Başlat</button>
+
+      <div class="divider"></div>
+      <p class="section-title">Manuel Giriş</p>
+      <div class="form-group">
+        <input class="form-input" id="manualBarcode" placeholder="Barkod veya ürün adı..." type="text">
+      </div>
+      <div class="form-group">
+        <input class="form-input" id="manualName" placeholder="Ürün adı (barkoddan farklıysa)" type="text">
+      </div>
+      <button class="btn btn-blue" onclick="manualStockIn()">➕ Stoğa Ekle</button>
     </div>
 
-    <button class="btn btn-orange" id="startBtn-package-out" onclick="toggleCamera('package-out')" style="margin-bottom:10px;">
-      📷 Kamera Başlat
-    </button>
-
-    <div class="divider"></div>
-
-    <p class="section-title">Manuel Paket No</p>
-    <div class="form-group">
-      <input class="form-input" id="manualPackageNo" placeholder="Paket numarası (ör: pkg-12345)" type="text">
+    <!-- PACKAGE OUT -->
+    <div id="mode-po" style="display:none;">
+      <p class="section-title">Paket Barkodu Tara → Sevk Et</p>
+      <div class="camera-wrap">
+        <div class="cam-placeholder" id="ph-po"><div class="icon">📷</div><div>Paket etiketindeki barkodu tarayın</div></div>
+        <video id="vid-po" autoplay playsinline style="display:none;"></video>
+        <div class="scan-line" id="sl-po" style="display:none;"></div>
+        <div class="scan-corner sc-tl" id="c-tl-po" style="display:none;"></div>
+        <div class="scan-corner sc-tr" id="c-tr-po" style="display:none;"></div>
+        <div class="scan-corner sc-bl" id="c-bl-po" style="display:none;"></div>
+        <div class="scan-corner sc-br" id="c-br-po" style="display:none;"></div>
+      </div>
+      <button class="btn btn-orange" id="camBtn-po" onclick="toggleCamera('po')" style="margin-bottom:10px;">📷 Kamera Başlat</button>
+      <div class="divider"></div>
+      <p class="section-title">Manuel Paket No</p>
+      <div class="form-group">
+        <input class="form-input" id="manualPkgNo" placeholder="Paket numarası..." type="text" onkeydown="if(event.key==='Enter') manualPackageOut()">
+      </div>
+      <button class="btn btn-red" onclick="manualPackageOut()">📤 Paketi Sevk Et</button>
     </div>
-    <button class="btn btn-red" onclick="manualPackageOut()">📤 Paketi Sevk Et</button>
+
+    <!-- QUERY -->
+    <div id="mode-qr" style="display:none;">
+      <p class="section-title">Stok Durumu Sorgula</p>
+      <div class="form-group">
+        <input class="form-input" id="queryName" placeholder="Ürün adı..." type="text" onkeydown="if(event.key==='Enter') queryStock()">
+      </div>
+      <button class="btn btn-blue" onclick="queryStock()" style="margin-bottom:14px;">🔍 Sorgula</button>
+      <div id="queryResult" class="result-card">
+        <div class="result-title">Stok Bilgisi</div>
+        <div class="result-value" id="qrName">—</div>
+        <div class="result-meta"  id="qrQty"></div>
+      </div>
+    </div>
+
+    <div class="log-wrap">
+      <div class="log-title">İşlem Geçmişi</div>
+      <div id="logList"></div>
+    </div>
   </div>
-
-  <!-- ── MANUAL MODE ── -->
-  <div id="mode-manual" style="display:none;">
-    <p class="section-title">Stok Durumu Sorgula</p>
-    <div class="form-group">
-      <input class="form-input" id="queryName" placeholder="Ürün adı..." type="text">
-    </div>
-    <button class="btn btn-blue" onclick="queryStock()" style="margin-bottom:16px;">🔍 Sorgula</button>
-
-    <div id="queryResult" style="display:none;" class="result-card show">
-      <div class="result-title">Stok Bilgisi</div>
-      <div class="result-value" id="queryResultName">—</div>
-      <div class="result-meta" id="queryResultQty"></div>
-    </div>
-
-    <div class="divider"></div>
-
-    <p class="section-title">Bağlantı Ayarları</p>
-    <button class="btn btn-gray" onclick="resetSetup()">⚙️ Bağlantıyı Sıfırla</button>
-  </div>
-
-  <!-- LOG -->
-  <div class="log-wrap" id="logWrap">
-    <div class="log-title">İşlem Geçmişi</div>
-    <div id="logList"></div>
-  </div>
-
 </div>
 
-<!-- ZXing barcode library -->
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.2/umd/index.min.js"></script>
-
 <script>
-// ============================================================
-// CONFIG
-// ============================================================
-const SUPABASE_URL_KEY = 'propack_scanner_url';
-const SUPABASE_KEY_KEY = 'propack_scanner_key';
-const LOW_STOCK        = 5;
+// ── CONFIG ───────────────────────────────────────────────────
+const SB_URL  = 'https://oatkbcrkfdeywygvddkm.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGtiY3JrZmRleXd5Z3ZkZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NDc2MDksImV4cCI6MjA5MzMyMzYwOX0.-au41gXf7ZJuIyjJxWyOOYtmZBQvNLvg620K60Kd3Ps';
+const VALID_PINS = { '123456': 'Görevli 1', '654321': 'Görevli 2', '999999': 'Yönetici' };
+const LOW_STOCK  = 5;
+const AUTO_LOGOUT_MS = 30 * 60 * 1000;
 
-let supabaseUrl  = '';
-let supabaseKey  = '';
-let currentMode  = 'stock-in';
-let cameraActive = { 'stock-in': false, 'package-out': false };
-let codeReaders  = {};
-let lastScanned  = '';
-let lastScannedTime = 0;
+// ── STATE ────────────────────────────────────────────────────
+let worker    = null;
+let cameras   = {};
+let camOn     = { si: false, po: false };
+let lastCode  = '';
+let lastTime  = 0;
+let logoutTimer;
+let pendingBarcode = '';
+let pendingQty     = 1;
 
-// ============================================================
-// SETUP
-// ============================================================
-function saveSetup() {
-    const url = document.getElementById('setupUrl').value.trim();
-    const key = document.getElementById('setupKey').value.trim();
-    if (!url || !key) { showToast('URL ve Key gerekli'); return; }
-    localStorage.setItem(SUPABASE_URL_KEY, url);
-    localStorage.setItem(SUPABASE_KEY_KEY, key);
-    supabaseUrl = url;
-    supabaseKey = key;
-    document.getElementById('setupScreen').style.display = 'none';
-    testConnection();
+// ── PIN ──────────────────────────────────────────────────────
+let pin = '';
+function pinPress(d) {
+    if (pin.length >= 6) return;
+    pin += d;
+    updateDots();
+    if (navigator.vibrate) navigator.vibrate(25);
+    if (pin.length === 6) setTimeout(checkPin, 100);
 }
-
-function resetSetup() {
-    localStorage.removeItem(SUPABASE_URL_KEY);
-    localStorage.removeItem(SUPABASE_KEY_KEY);
-    location.reload();
+function pinDelete() { pin = pin.slice(0,-1); updateDots(); }
+function updateDots() {
+    for (let i=0;i<6;i++) document.getElementById('dot'+i).className='pin-dot'+(i<pin.length?' filled':'');
 }
+async function checkPin() {
+    const entered = pin; pin = ''; updateDots();
+    document.getElementById('pinError').textContent = '';
 
-function loadSetup() {
-    supabaseUrl = localStorage.getItem(SUPABASE_URL_KEY) || '';
-    supabaseKey = localStorage.getItem(SUPABASE_KEY_KEY) || '';
-    if (supabaseUrl && supabaseKey) {
-        document.getElementById('setupScreen').style.display = 'none';
-        testConnection();
-    } else {
-        // Pre-fill URL if known
-        document.getElementById('setupUrl').value = 'https://oatkbcrkfdeywygvddkm.supabase.co';
-    }
-}
-
-async function testConnection() {
+    // Try Supabase scanner_users table first
     try {
-        const res = await sbFetch('stock_items', { select: 'id', limit: 1 });
-        if (res.ok) {
-            setConnected(true);
-            addLog('Supabase bağlantısı başarılı', 'success');
-        } else {
-            setConnected(false);
-            addLog('Bağlantı hatası: ' + res.status, 'error');
+        const rows = await sbGet('scanner_users','name,role,is_active','pin=eq.'+encodeURIComponent(entered));
+        if (rows && rows.length > 0) {
+            if (!rows[0].is_active) { pinWrong('Bu PIN devre dışı.'); return; }
+            loginOK(rows[0].name, rows[0].role); return;
         }
-    } catch (e) {
-        setConnected(false);
-        addLog('Bağlantı hatası: ' + e.message, 'error');
-    }
+    } catch(e) { /* table may not exist yet — fall through to hardcoded */ }
+
+    // Fallback to hardcoded PINs
+    if (VALID_PINS[entered]) { loginOK(VALID_PINS[entered], 'worker'); return; }
+    pinWrong('Yanlış PIN. Tekrar deneyin.');
 }
-
-function setConnected(ok) {
-    document.getElementById('statusDot').className = 'status-dot' + (ok ? ' connected' : '');
-    document.getElementById('connLabel').textContent = ok ? 'Bağlı' : 'Bağlantı yok';
+function pinWrong(msg) {
+    document.getElementById('pinError').textContent = msg;
+    const dots = document.getElementById('pinDots');
+    dots.classList.remove('shake'); void dots.offsetWidth; dots.classList.add('shake');
+    if (navigator.vibrate) navigator.vibrate([100,80,100]);
 }
+function loginOK(name, role) {
+    worker = { name, role };
+    document.getElementById('pinScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'flex';
+    document.getElementById('workerName').textContent = name;
+    addLog(name + ' giriş yaptı', 'success');
+    testConn();
+    resetLogout();
+}
+function logout() {
+    stopAll(); worker = null; pin = ''; updateDots();
+    document.getElementById('pinError').textContent = '';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('pinScreen').style.display = 'flex';
+    clearTimeout(logoutTimer);
+}
+function resetLogout() {
+    clearTimeout(logoutTimer);
+    logoutTimer = setTimeout(() => { addLog('Hareketsizlik — çıkış yapıldı','warning'); logout(); }, AUTO_LOGOUT_MS);
+}
+document.addEventListener('touchstart', resetLogout);
+document.addEventListener('click', resetLogout);
 
-// ============================================================
-// SUPABASE FETCH HELPERS
-// ============================================================
-async function sbFetch(table, opts = {}) {
-    let url = supabaseUrl + '/rest/v1/' + table + '?';
-    const params = [];
-    if (opts.select)  params.push('select=' + encodeURIComponent(opts.select));
-    if (opts.filter)  params.push(opts.filter);
-    if (opts.limit)   params.push('limit=' + opts.limit);
-    if (opts.order)   params.push('order=' + opts.order);
-    url += params.join('&');
+// ── SUPABASE HELPERS ─────────────────────────────────────────
+function hdrs() {
+    return { 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY, 'Content-Type':'application/json', 'Prefer':'return=representation' };
+}
+async function sbGet(table, select, filter) {
+    let url = SB_URL+'/rest/v1/'+table+'?select='+select;
+    if (filter) url += '&'+filter;
+    const r = await fetch(url,{headers:hdrs()});
+    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||r.status); }
+    return r.json();
+}
+async function sbPatch(table, body, filter) {
+    const url = SB_URL+'/rest/v1/'+table+'?'+filter;
+    const r = await fetch(url,{method:'PATCH',headers:hdrs(),body:JSON.stringify(body)});
+    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||r.status); }
+    return r;
+}
+async function sbPost(table, body) {
+    const url = SB_URL+'/rest/v1/'+table;
+    const r = await fetch(url,{method:'POST',headers:hdrs(),body:JSON.stringify(body)});
+    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||r.status); }
+    return r;
+}
+async function testConn() {
+    try { await sbGet('stock_items','id','limit=1'); setConn(true); }
+    catch(e) { setConn(false); }
+}
+function setConn(ok) { document.getElementById('statusDot').className='status-dot'+(ok?' connected':''); }
 
-    return fetch(url, {
-        headers: {
-            'apikey': supabaseKey,
-            'Authorization': 'Bearer ' + supabaseKey,
-            'Content-Type': 'application/json',
-            'Prefer': opts.prefer || 'return=representation'
-        },
-        method: opts.method || 'GET',
-        body: opts.body ? JSON.stringify(opts.body) : undefined
+// ── MODE SWITCHING ───────────────────────────────────────────
+function switchMode(m) {
+    stopAll();
+    ['si','po','qr'].forEach(x => {
+        document.getElementById('mode-'+x).style.display = x===m?'block':'none';
+        document.getElementById('tab-'+x).className = 'mode-tab'+(x===m?' active':'');
     });
+    document.getElementById('resultCard').style.display='none';
 }
 
-async function sbQuery(table, select, filterKey, filterVal, matchType) {
-    // matchType: 'eq', 'ilike'
-    const filter = filterKey + '.' + (matchType || 'eq') + '.' + encodeURIComponent(filterVal);
-    const res = await sbFetch(table, { select, filter });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return Array.isArray(data) ? data[0] || null : null;
-}
+// ── CAMERA ───────────────────────────────────────────────────
+function toggleCamera(id) { camOn[id]?stopCam(id):startCam(id); }
 
-async function sbInsert(table, body) {
-    const res = await sbFetch(table, { method: 'POST', body, prefer: 'return=representation' });
-    return res;
-}
-
-async function sbUpdate(table, body, filterKey, filterVal) {
-    const filter = filterKey + '.eq.' + encodeURIComponent(filterVal);
-    const res = await sbFetch(table, {
-        method: 'PATCH',
-        body,
-        filter,
-        prefer: 'return=representation'
-    });
-    return res;
-}
-
-// ============================================================
-// MODE SWITCHING
-// ============================================================
-function switchMode(mode) {
-    // Stop any active camera
-    Object.keys(cameraActive).forEach(m => {
-        if (cameraActive[m]) stopCamera(m);
-    });
-
-    currentMode = mode;
-    ['stock-in', 'package-out', 'manual'].forEach(m => {
-        document.getElementById('mode-' + m).style.display = m === mode ? 'block' : 'none';
-        document.getElementById('tab-' + m).className = 'mode-tab' + (m === mode ? ' active' : '');
-    });
-
-    hideResult();
-}
-
-// ============================================================
-// CAMERA / SCANNER
-// ============================================================
-function toggleCamera(mode) {
-    if (cameraActive[mode]) {
-        stopCamera(mode);
-    } else {
-        startCamera(mode);
-    }
-}
-
-async function startCamera(mode) {
-    const video = document.getElementById('video-' + mode);
-    const placeholder = document.getElementById('placeholder-' + mode);
-    const btn = document.getElementById('startBtn-' + mode);
-    const scanLine = document.getElementById('scanLine-' + mode);
-
+async function startCam(id) {
+    const vid=document.getElementById('vid-'+id);
+    const ph =document.getElementById('ph-'+id);
+    const btn=document.getElementById('camBtn-'+id);
+    const sl =document.getElementById('sl-'+id);
     try {
-        if (!window.ZXing) {
-            showToast('❌ ZXing kütüphanesi yüklenmedi');
-            return;
-        }
-
-        const hints = new Map();
-        const formats = [
-            ZXing.BarcodeFormat.CODE_128,
-            ZXing.BarcodeFormat.CODE_39,
-            ZXing.BarcodeFormat.EAN_13,
-            ZXing.BarcodeFormat.EAN_8,
-            ZXing.BarcodeFormat.QR_CODE,
-            ZXing.BarcodeFormat.DATA_MATRIX
-        ];
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-
-        const reader = new ZXing.BrowserMultiFormatReader(hints);
-        codeReaders[mode] = reader;
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        if (!window.ZXing) throw new Error('ZXing yüklenemedi');
+        const hints=new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+            ZXing.BarcodeFormat.CODE_128,ZXing.BarcodeFormat.CODE_39,
+            ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.QR_CODE,ZXing.BarcodeFormat.DATA_MATRIX
+        ]);
+        const reader=new ZXing.BrowserMultiFormatReader(hints);
+        cameras[id]=reader;
+        const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+        vid.srcObject=stream; vid.style.display='block';
+        ph.style.display='none'; sl.style.display='block';
+        ['tl','tr','bl','br'].forEach(c=>{ const el=document.getElementById('c-'+c+'-'+id); if(el) el.style.display='block'; });
+        btn.textContent='⏹ Kamerayı Durdur'; btn.className='btn btn-red'; camOn[id]=true;
+        reader.decodeFromStream(stream,vid,function(result){
+            if(!result) return;
+            const code=result.getText(), now=Date.now();
+            if(code===lastCode && now-lastTime<3000) return;
+            lastCode=code; lastTime=now;
+            if(navigator.vibrate) navigator.vibrate([80,40,80]);
+            if(id==='si') handleStockScan(code);
+            else          handlePkgScan(code);
         });
-
-        video.srcObject = stream;
-        video.style.display = 'block';
-        placeholder.style.display = 'none';
-        scanLine.style.display = 'block';
-
-        // Show corners
-        const suffix = mode === 'stock-in' ? 'si' : 'po';
-        ['tl','tr','bl','br'].forEach(c => {
-            const el = document.getElementById('sc-' + c + '-' + suffix);
-            if (el) el.style.display = 'block';
-        });
-
-        btn.textContent = '⏹ Kamerayı Durdur';
-        btn.className = 'btn btn-red';
-        cameraActive[mode] = true;
-
-        reader.decodeFromStream(stream, video, (result, err) => {
-            if (result) {
-                const code = result.getText();
-                const now = Date.now();
-                // Debounce — ignore same code within 3 seconds
-                if (code === lastScanned && now - lastScannedTime < 3000) return;
-                lastScanned = code;
-                lastScannedTime = now;
-
-                // Vibrate on scan
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-
-                if (mode === 'stock-in') {
-                    handleStockInScan(code);
-                } else if (mode === 'package-out') {
-                    handlePackageOutScan(code);
-                }
-            }
-        });
-
-        addLog('Kamera başlatıldı (' + mode + ')', 'info');
-
-    } catch (err) {
-        addLog('Kamera hatası: ' + err.message, 'error');
-        showToast('❌ Kamera açılamadı: ' + err.message);
-    }
+        addLog('Kamera başlatıldı','info');
+    } catch(e) { addLog('Kamera hatası: '+e.message,'error'); showToast('❌ '+e.message); }
 }
 
-function stopCamera(mode) {
-    const video = document.getElementById('video-' + mode);
-    const placeholder = document.getElementById('placeholder-' + mode);
-    const btn = document.getElementById('startBtn-' + mode);
-    const scanLine = document.getElementById('scanLine-' + mode);
-
-    if (codeReaders[mode]) {
-        try { codeReaders[mode].reset(); } catch(e) {}
-        delete codeReaders[mode];
-    }
-
-    if (video.srcObject) {
-        video.srcObject.getTracks().forEach(t => t.stop());
-        video.srcObject = null;
-    }
-
-    video.style.display = 'none';
-    placeholder.style.display = 'flex';
-    scanLine.style.display = 'none';
-
-    const suffix = mode === 'stock-in' ? 'si' : 'po';
-    ['tl','tr','bl','br'].forEach(c => {
-        const el = document.getElementById('sc-' + c + '-' + suffix);
-        if (el) el.style.display = 'none';
-    });
-
-    const labels = { 'stock-in': '📷 Kamera Başlat', 'package-out': '📷 Kamera Başlat' };
-    btn.textContent = labels[mode];
-    btn.className = 'btn ' + (mode === 'stock-in' ? 'btn-green' : 'btn-orange');
-    cameraActive[mode] = false;
-
-    addLog('Kamera durduruldu', 'info');
+function stopCam(id) {
+    const vid=document.getElementById('vid-'+id);
+    const btn=document.getElementById('camBtn-'+id);
+    if(cameras[id]){try{cameras[id].reset();}catch(e){} delete cameras[id];}
+    if(vid.srcObject){vid.srcObject.getTracks().forEach(t=>t.stop());vid.srcObject=null;}
+    vid.style.display='none';
+    document.getElementById('ph-'+id).style.display='flex';
+    document.getElementById('sl-'+id).style.display='none';
+    ['tl','tr','bl','br'].forEach(c=>{const el=document.getElementById('c-'+c+'-'+id);if(el)el.style.display='none';});
+    const labels={si:'📷 Kamera Başlat',po:'📷 Kamera Başlat'};
+    const cls={si:'btn btn-green',po:'btn btn-orange'};
+    btn.textContent=labels[id]; btn.className=cls[id]; camOn[id]=false;
 }
+function stopAll(){Object.keys(camOn).forEach(id=>{if(camOn[id])stopCam(id);});}
 
-// ============================================================
-// STOCK IN
-// ============================================================
-async function handleStockInScan(barcode) {
-    const qty = parseInt(document.getElementById('stockInQty').value) || 1;
-    showResult('Taranan Barkod', barcode, 'İşleniyor...', '');
-    await processStockIn(barcode, barcode, qty);
+// ── STOCK IN ─────────────────────────────────────────────────
+function handleStockScan(barcode) {
+    const qty=parseInt(document.getElementById('stockInQty').value)||1;
+    showResult('Taranan Barkod',barcode,'İşleniyor...','');
+    doStockIn(barcode, barcode, qty);
 }
-
 async function manualStockIn() {
-    const barcode = document.getElementById('manualBarcodeIn').value.trim();
-    const name    = document.getElementById('manualNameIn').value.trim();
-    const qty     = parseInt(document.getElementById('stockInQty').value) || 1;
-
-    if (!barcode && !name) {
-        showToast('Barkod veya ürün adı girin');
-        return;
-    }
-
-    const itemBarcode = barcode || ('manual-' + Date.now());
-    const itemName    = name || barcode;
-
-    await processStockIn(itemBarcode, itemName, qty);
-
-    document.getElementById('manualBarcodeIn').value = '';
-    document.getElementById('manualNameIn').value = '';
+    const barcode=document.getElementById('manualBarcode').value.trim();
+    const name   =document.getElementById('manualName').value.trim();
+    const qty    =parseInt(document.getElementById('stockInQty').value)||1;
+    if(!barcode&&!name){showToast('Barkod veya ürün adı girin');return;}
+    await doStockIn(barcode||'manual-'+Date.now(), name||barcode, qty);
+    document.getElementById('manualBarcode').value='';
+    document.getElementById('manualName').value='';
 }
-
-async function processStockIn(barcode, name, qty) {
+async function doStockIn(barcode, name, qty) {
     try {
-        // Check if exists
-        const existing = await sbQuery('stock_items', 'id,quantity,name', 'barcode', barcode, 'eq');
-
-        if (existing) {
-            const newQty = existing.quantity + qty;
-            const res = await sbUpdate('stock_items', {
-                quantity: newQty,
-                updated_at: new Date().toISOString()
-            }, 'id', existing.id);
-
-            if (!res.ok) throw new Error('Güncelleme hatası: ' + res.status);
-
-            const badge = newQty <= 0 ? 'empty' : newQty <= LOW_STOCK ? 'low' : 'ok';
-            showResult('✅ Stok Güncellendi', existing.name,
-                'Önceki: ' + existing.quantity + ' → Yeni: ' + newQty,
-                badge === 'ok' ? 'success' : 'warning');
-            addLog('Güncellendi: ' + existing.name + ' → ' + newQty + ' adet', 'success');
-
+        const rows=await sbGet('stock_items','id,quantity,name','barcode=eq.'+encodeURIComponent(barcode));
+        if (rows && rows.length>0) {
+            const ex=rows[0];
+            const newQty=ex.quantity+qty;
+            await sbPatch('stock_items',{quantity:newQty,updated_at:new Date().toISOString()},'id=eq.'+ex.id);
+            const lv=newQty<=0?'empty':newQty<=LOW_STOCK?'low':'ok';
+            showResult('✅ Stok Güncellendi',ex.name,'Önceki: '+ex.quantity+' → Yeni: '+newQty+' adet',lv==='ok'?'success':'warning');
+            addLog('['+worker?.name+'] Güncellendi: '+ex.name+' → '+newQty,'success');
         } else {
-            // New item — if barcode != name, we need a name
-            let itemName = name;
-            if (barcode === name) {
-                // Barcode scanned but no name — ask user
-                itemName = window.prompt('Yeni ürün. Ürün adı girin:', barcode);
-                if (!itemName) { addLog('İptal: isim girilmedi', 'warning'); return; }
+            // New item — show inline prompt instead of window.prompt()
+            if (barcode===name) {
+                pendingBarcode=barcode; pendingQty=qty;
+                document.getElementById('newItemNameInput').value='';
+                document.getElementById('namePrompt').className='name-prompt show';
+                document.getElementById('newItemNameInput').focus();
+                return;
             }
-
-            const res = await sbInsert('stock_items', {
-                barcode: barcode,
-                name: itemName,
-                quantity: qty,
-                updated_at: new Date().toISOString(),
-                created_at: new Date().toISOString()
-            });
-
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.message || res.status);
-            }
-
-            showResult('✅ Yeni Ürün Eklendi', itemName, qty + ' adet ile oluşturuldu', 'success');
-            addLog('Yeni ürün: ' + itemName + ' (' + qty + ' adet)', 'success');
+            await insertNewItem(barcode, name, qty);
         }
-
-        setConnected(true);
-
-    } catch (err) {
-        showResult('❌ Hata', err.message, '', 'error');
-        addLog('Hata: ' + err.message, 'error');
-        setConnected(false);
+        setConn(true);
+    } catch(e) {
+        showResult('❌ Hata',e.message,'','error');
+        addLog('Hata: '+e.message,'error');
+        setConn(false);
+    }
+}
+async function confirmNewItem() {
+    const name=document.getElementById('newItemNameInput').value.trim();
+    if(!name){showToast('Ürün adı girin');return;}
+    document.getElementById('namePrompt').className='name-prompt';
+    await insertNewItem(pendingBarcode, name, pendingQty);
+}
+function cancelNewItem() {
+    document.getElementById('namePrompt').className='name-prompt';
+    pendingBarcode=''; pendingQty=1;
+    addLog('Yeni ürün ekleme iptal edildi','info');
+}
+async function insertNewItem(barcode, name, qty) {
+    try {
+        await sbPost('stock_items',{barcode,name,quantity:qty,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
+        showResult('✅ Yeni Ürün Eklendi',name,qty+' adet ile oluşturuldu','success');
+        addLog('['+worker?.name+'] Yeni: '+name+' ('+qty+')','success');
+        setConn(true);
+    } catch(e) {
+        showResult('❌ Hata',e.message,'','error');
+        addLog('Hata: '+e.message,'error');
+        setConn(false);
     }
 }
 
-// ============================================================
-// PACKAGE OUT
-// ============================================================
-async function handlePackageOutScan(packageNo) {
-    showResult('Taranan Paket', packageNo, 'İşleniyor...', '');
-    await processPackageOut(packageNo);
+// ── PACKAGE OUT ──────────────────────────────────────────────
+function handlePkgScan(code) {
+    showResult('Taranan Paket',code,'İşleniyor...','');
+    doPackageOut(code);
 }
-
 async function manualPackageOut() {
-    const packageNo = document.getElementById('manualPackageNo').value.trim();
-    if (!packageNo) { showToast('Paket numarası girin'); return; }
-    await processPackageOut(packageNo);
-    document.getElementById('manualPackageNo').value = '';
+    const no=document.getElementById('manualPkgNo').value.trim();
+    if(!no){showToast('Paket numarası girin');return;}
+    await doPackageOut(no);
+    document.getElementById('manualPkgNo').value='';
 }
-
-async function processPackageOut(packageNo) {
+async function doPackageOut(packageNo) {
     try {
-        // Find the package
-        const pkg = await sbQuery('packages', 'id,package_no,status,items,items_display,items_array,customer_name,total_quantity',
-            'package_no', packageNo, 'eq');
-
-        if (!pkg) {
-            showResult('❌ Paket Bulunamadı', packageNo, 'Bu paket numarası sistemde yok', 'error');
-            addLog('Paket bulunamadı: ' + packageNo, 'error');
-            return;
+        const rows=await sbGet('packages','id,package_no,status,items,items_display,items_array,customer_name,total_quantity','package_no=eq.'+encodeURIComponent(packageNo));
+        if(!rows||rows.length===0){
+            showResult('❌ Bulunamadı',packageNo,'Bu paket numarası sistemde yok','error');
+            addLog('Bulunamadı: '+packageNo,'error'); return;
         }
-
-        if (pkg.status === 'sevk-edildi') {
-            showResult('⚠️ Zaten Sevk Edildi', packageNo, 'Müşteri: ' + (pkg.customer_name || '—'), 'warning');
-            addLog('Zaten sevk edildi: ' + packageNo, 'warning');
-            return;
+        const pkg=rows[0];
+        if(pkg.status==='sevk-edildi'){
+            showResult('⚠️ Zaten Sevk Edildi',packageNo,'Müşteri: '+(pkg.customer_name||'—'),'warning');
+            addLog('Zaten sevk edildi: '+packageNo,'warning'); return;
         }
-
-        // Mark as shipped
-        const containerNo = 'MOBILE-' + Date.now().toString().slice(-6);
-        const res = await sbUpdate('packages', {
-            status: 'sevk-edildi',
-            container_id: containerNo,
-            shipped_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        }, 'id', pkg.id);
-
-        if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.message || 'Güncelleme başarısız');
-        }
-
-        // Decrease stock
-        await decreaseStockForPackage(pkg);
-
-        const totalQty = pkg.total_quantity || '?';
-        showResult('✅ Paket Sevk Edildi', packageNo,
-            'Müşteri: ' + (pkg.customer_name || '—') + ' | Toplam: ' + totalQty + ' adet',
-            'success');
-        addLog('Sevk edildi: ' + packageNo + ' (' + (pkg.customer_name || '') + ')', 'success');
-        setConnected(true);
-
-    } catch (err) {
-        showResult('❌ Hata', err.message, '', 'error');
-        addLog('Hata: ' + err.message, 'error');
-        setConnected(false);
+        await sbPatch('packages',{status:'sevk-edildi',container_id:'MOB-'+Date.now().toString().slice(-6),shipped_at:new Date().toISOString(),updated_at:new Date().toISOString()},'id=eq.'+pkg.id);
+        await decreaseStock(pkg);
+        showResult('✅ Paket Sevk Edildi',packageNo,'Müşteri: '+(pkg.customer_name||'—')+' | '+(pkg.total_quantity||'?')+' adet','success');
+        addLog('['+worker?.name+'] Sevk: '+packageNo,'success');
+        setConn(true);
+    } catch(e) {
+        showResult('❌ Hata',e.message,'','error');
+        addLog('Hata: '+e.message,'error');
+        setConn(false);
     }
 }
-
-async function decreaseStockForPackage(pkg) {
-    let items = [];
-
-    if (pkg.items && typeof pkg.items === 'object') {
-        if (Array.isArray(pkg.items)) {
-            items = pkg.items;
-        } else {
-            items = Object.entries(pkg.items).map(([name, qty]) => ({ name, qty }));
-        }
-    } else if (pkg.items_array && Array.isArray(pkg.items_array)) {
-        items = pkg.items_array;
-    } else if (pkg.items_display) {
-        items = pkg.items_display.split(',').map(s => {
-            s = s.trim();
-            const m = s.match(/^(.+?)\s+(\d+)$/);
-            return m ? { name: m[1].trim(), qty: parseInt(m[2]) } : { name: s, qty: 1 };
-        });
+async function decreaseStock(pkg) {
+    let items=[];
+    if(pkg.items&&typeof pkg.items==='object') {
+        items=Array.isArray(pkg.items)?pkg.items:Object.entries(pkg.items).map(([n,q])=>({name:n,qty:q}));
+    } else if(pkg.items_array) {
+        items=pkg.items_array;
+    } else if(pkg.items_display) {
+        items=pkg.items_display.split(',').map(s=>{s=s.trim();const m=s.match(/^(.+?)\s+(\d+)$/);return m?{name:m[1].trim(),qty:parseInt(m[2])}:{name:s,qty:1};});
     }
-
-    for (const item of items) {
+    for(const item of items){
         try {
-            const stockItem = await sbQuery('stock_items', 'id,quantity,name', 'name', item.name, 'ilike');
-            if (!stockItem) continue;
-
-            const newQty = Math.max(0, stockItem.quantity - (item.qty || 1));
-            await sbUpdate('stock_items', {
-                quantity: newQty,
-                updated_at: new Date().toISOString()
-            }, 'id', stockItem.id);
-
-            addLog('Stok azaldı: ' + stockItem.name + ' → ' + newQty, 'info');
-        } catch (e) {
-            addLog('Stok azaltma hatası (' + item.name + '): ' + e.message, 'warning');
-        }
+            // ilike with % wildcards for partial match
+            const rows=await sbGet('stock_items','id,quantity,name','name=ilike.'+encodeURIComponent(item.name));
+            if(!rows||rows.length===0) continue;
+            const si=rows[0];
+            const nq=Math.max(0,si.quantity-(item.qty||1));
+            await sbPatch('stock_items',{quantity:nq,updated_at:new Date().toISOString()},'id=eq.'+si.id);
+            addLog('Stok ↓ '+si.name+' → '+nq,'info');
+        } catch(e){ addLog('Stok azaltma hatası ('+item.name+')','warning'); }
     }
 }
 
-// ============================================================
-// STOCK QUERY
-// ============================================================
+// ── STOCK QUERY ──────────────────────────────────────────────
 async function queryStock() {
-    const name = document.getElementById('queryName').value.trim();
-    if (!name) { showToast('Ürün adı girin'); return; }
-
+    const name=document.getElementById('queryName').value.trim();
+    if(!name){showToast('Ürün adı girin');return;}
     try {
-        const item = await sbQuery('stock_items', 'name,quantity,barcode,updated_at', 'name', name, 'ilike');
-
-        const resultEl = document.getElementById('queryResult');
-        const nameEl   = document.getElementById('queryResultName');
-        const qtyEl    = document.getElementById('queryResultQty');
-
-        if (!item) {
-            nameEl.textContent = 'Bulunamadı';
-            qtyEl.textContent  = '"' + name + '" stok sisteminde kayıtlı değil';
-            resultEl.className = 'result-card show error';
+        const rows=await sbGet('stock_items','name,quantity,barcode','name=ilike.'+encodeURIComponent('%'+name+'%'));
+        const el=document.getElementById('queryResult');
+        if(!rows||rows.length===0){
+            document.getElementById('qrName').textContent='Bulunamadı';
+            document.getElementById('qrQty').textContent='"'+name+'" stok sisteminde kayıtlı değil';
+            el.className='result-card error'; el.style.display='block';
         } else {
-            const badge = item.quantity <= 0 ? 'empty' : item.quantity <= LOW_STOCK ? 'low' : 'ok';
-            const labels = { ok: 'Yeterli', low: 'Düşük', empty: 'Tükendi' };
-            nameEl.textContent = item.name;
-            qtyEl.innerHTML = '<span class="stock-badge ' + badge + '">' + labels[badge] + '</span> ' +
-                item.quantity + ' adet' +
-                (item.barcode ? ' · Barkod: ' + item.barcode : '');
-            resultEl.className = 'result-card show ' + (badge === 'ok' ? 'success' : badge === 'low' ? 'warning' : 'error');
+            const it=rows[0];
+            const badge=it.quantity<=0?'empty':it.quantity<=LOW_STOCK?'low':'ok';
+            const labels={ok:'Yeterli',low:'Düşük Stok',empty:'Tükendi'};
+            document.getElementById('qrName').textContent=it.name;
+            document.getElementById('qrQty').innerHTML='<span class="stock-badge '+badge+'">'+labels[badge]+'</span> '+it.quantity+' adet'+(it.barcode?' · '+it.barcode:'');
+            el.className='result-card '+(badge==='ok'?'success':badge==='low'?'warning':'error');
+            el.style.display='block';
         }
-
-        resultEl.style.display = 'block';
-        setConnected(true);
-    } catch (err) {
-        addLog('Sorgu hatası: ' + err.message, 'error');
-        setConnected(false);
-    }
+        setConn(true);
+    } catch(e){ addLog('Sorgu hatası: '+e.message,'error'); setConn(false); }
 }
 
-// ============================================================
-// UI HELPERS
-// ============================================================
-function showResult(title, value, meta, type) {
-    const card = document.getElementById('resultCard');
-    card.className = 'result-card show' + (type ? ' ' + type : '');
-    document.getElementById('resultTitle').textContent = title;
-    document.getElementById('resultValue').textContent = value;
-    document.getElementById('resultMeta').textContent = meta;
-    card.style.display = 'block';
+// ── UI HELPERS ───────────────────────────────────────────────
+function showResult(title,value,meta,type){
+    const c=document.getElementById('resultCard');
+    c.className='result-card show'+(type?' '+type:'');
+    document.getElementById('resultTitle').textContent=title;
+    document.getElementById('resultValue').textContent=value;
+    document.getElementById('resultMeta').textContent=meta;
+    c.style.display='block';
 }
-
-function hideResult() {
-    document.getElementById('resultCard').style.display = 'none';
+function addLog(msg,type){
+    const list=document.getElementById('logList');
+    const now=new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const item=document.createElement('div');
+    item.className='log-item';
+    item.innerHTML='<span class="log-time">'+now+'</span><span class="log-msg '+(type||'info')+'">'+msg+'</span>';
+    list.insertBefore(item,list.firstChild);
+    while(list.children.length>60) list.removeChild(list.lastChild);
 }
-
-function addLog(msg, type) {
-    const list = document.getElementById('logList');
-    const now  = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const item = document.createElement('div');
-    item.className = 'log-item';
-    item.innerHTML = '<span class="log-time">' + now + '</span>' +
-                     '<span class="log-msg ' + (type || 'info') + '">' + msg + '</span>';
-    list.insertBefore(item, list.firstChild);
-
-    // Keep max 50 logs
-    while (list.children.length > 50) list.removeChild(list.lastChild);
-}
-
-function showToast(msg) {
-    const old = document.getElementById('toastEl');
-    if (old) old.remove();
-    const t = document.createElement('div');
-    t.id = 'toastEl';
-    t.className = 'toast';
-    t.textContent = msg;
+function showToast(msg){
+    const old=document.getElementById('_t'); if(old) old.remove();
+    const t=document.createElement('div'); t.id='_t'; t.className='toast'; t.textContent=msg;
     document.body.appendChild(t);
-    setTimeout(() => { if (t.parentNode) t.remove(); }, 2800);
+    setTimeout(()=>{if(t.parentNode)t.remove();},2600);
 }
 
-// ============================================================
 // INIT
-// ============================================================
-loadSetup();
-addLog('Pro Pack Scanner başlatıldı', 'info');
+addLog('Pro Pack Scanner hazır','info');
 </script>
 </body>
 </html>
