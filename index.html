@@ -418,25 +418,28 @@ async function manualStockIn() {
     document.getElementById('manualName').value='';
 }
 async function doStockIn(barcode, name, qty) {
+    addLog('Stok aranıyor: "'+barcode+'" x'+qty,'info');
     try {
-        const rows=await sbGet('stock_items','id,quantity,name','barcode=eq.'+encodeURIComponent(barcode));
+        // Search by barcode first, then by name as fallback
+        let rows = await sbGet('stock_items','id,quantity,name','barcode=eq.'+encodeURIComponent(barcode));
+        if (!rows || rows.length===0) {
+            rows = await sbGet('stock_items','id,quantity,name','name=ilike.'+encodeURIComponent(barcode));
+        }
         if (rows && rows.length>0) {
             const ex=rows[0];
             const newQty=ex.quantity+qty;
+            addLog('Bulunan: "'+ex.name+'" mevcut:'+ex.quantity+' ekle:'+qty,'info');
             await sbPatch('stock_items',{quantity:newQty,updated_at:new Date().toISOString()},'id=eq.'+ex.id);
             const lv=newQty<=0?'empty':newQty<=LOW_STOCK?'low':'ok';
             showResult('✅ Stok Güncellendi',ex.name,'Önceki: '+ex.quantity+' → Yeni: '+newQty+' adet',lv==='ok'?'success':'warning');
             addLog('['+worker?.name+'] Güncellendi: '+ex.name+' → '+newQty,'success');
         } else {
-            // New item — show inline prompt instead of window.prompt()
-            if (barcode===name) {
-                pendingBarcode=barcode; pendingQty=qty;
-                document.getElementById('newItemNameInput').value='';
-                document.getElementById('namePrompt').className='name-prompt show';
-                document.getElementById('newItemNameInput').focus();
-                return;
-            }
-            await insertNewItem(barcode, name, qty);
+            addLog('Yeni barkod: "'+barcode+'" — isim gerekli','info');
+            pendingBarcode=barcode; pendingQty=qty;
+            document.getElementById('newItemNameInput').value=barcode===name?'':name;
+            document.getElementById('namePrompt').className='name-prompt show';
+            document.getElementById('newItemNameInput').focus();
+            return;
         }
         setConn(true);
     } catch(e) {
@@ -482,7 +485,12 @@ async function manualPackageOut() {
 }
 async function doPackageOut(packageNo) {
     try {
-        const rows=await sbGet('packages','id,package_no,status,items,items_display,items_array,customer_name,total_quantity','package_no=eq.'+encodeURIComponent(packageNo));
+        // Search by package_no first, then by id as fallback
+        addLog('Paket aranıyor: '+packageNo,'info');
+        let rows=await sbGet('packages','id,package_no,status,items,items_display,items_array,customer_name,total_quantity','package_no=eq.'+encodeURIComponent(packageNo));
+        if(!rows||rows.length===0){
+            rows=await sbGet('packages','id,package_no,status,items,items_display,items_array,customer_name,total_quantity','id=eq.'+encodeURIComponent(packageNo));
+        }
         if(!rows||rows.length===0){
             showResult('❌ Bulunamadı',packageNo,'Bu paket numarası sistemde yok','error');
             addLog('Bulunamadı: '+packageNo,'error'); return;
